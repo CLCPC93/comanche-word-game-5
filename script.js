@@ -22,7 +22,7 @@ function setKeyState(letter, next) {
 
 function applyKeyStyles() {
   document.querySelectorAll('#keyboard-container .keyboard-button').forEach(btn => {
-    const k = btn.textContent;
+    const k = (btn.dataset.key || btn.textContent).normalize('NFC');
     btn.classList.remove('correct','present','absent');
     const s = keyStates[k];
     if (s) btn.classList.add(s);
@@ -74,19 +74,20 @@ window.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  function createKeyboard() {
-    const keys = [
-      'b','h','k','kw','m','n','p','r','s','t','ts','w','y','ʔ',
-      'a','e','i','o','u','ʉ','a̠','e̠','i̠','o̠','u̠','ʉ̠','←','⏎'
-    ];
-    keys.forEach(key => {
-      const button = document.createElement('button');
-      button.textContent = key;
-      button.classList.add('keyboard-button');
-      button.addEventListener('click', () => handleKey(key));
-      keyboard.appendChild(button);
-    });
-  }
+function createKeyboard() {
+  const keys = [
+    'b','h','k','kw','m','n','p','r','s','t','ts','w','y','ʔ',
+    'a','e','i','o','u','ʉ','a̠','e̠','i̠','o̠','u̠','ʉ̠','←','⏎'
+  ];
+  keys.forEach(key => {
+    const button = document.createElement('button');
+    button.textContent = key;
+    button.dataset.key = key.normalize('NFC');   // <-- stable key id
+    button.classList.add('keyboard-button');
+    button.addEventListener('click', () => handleKey(key));
+    keyboard.appendChild(button);
+  });
+}
 
   function handleKey(key) {
     messageContainer.textContent = "";
