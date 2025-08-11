@@ -154,3 +154,21 @@ header {
 .keyboard-button.absent:hover  { box-shadow: inset 0 0 0 9999px #bdbdbd; }
 .keyboard-button:active { transform: translateY(1px); }
 .keyboard-button:focus-visible { outline: 2px solid #145374; outline-offset: 2px; }
+
+/* FINAL OVERRIDE: dark=correct, light=present (keeps borders) */
+.tile.correct, .keyboard-button.correct, .key-tile.correct {
+  background: transparent !important;
+  box-shadow: inset 0 0 0 9999px #003366 !important;
+  color: #fff !important;
+}
+.tile.present, .keyboard-button.present, .key-tile.present {
+  background: transparent !important;
+  box-shadow: inset 0 0 0 9999px #66b3ff !important;
+  color: #003366 !important;
+}
+.tile.absent, .keyboard-button.absent, .key-tile.absent {
+  background: transparent !important;
+  box-shadow: inset 0 0 0 9999px #ccc !important;
+  color: #333 !important;
+}
+
