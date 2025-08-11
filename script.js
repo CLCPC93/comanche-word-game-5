@@ -11,6 +11,48 @@ let currentGuess = [];
 let currentRow = 0;
 let results = [];
 
+// --- Keyboard state tracking (best-known status) ---
+const KEY_ORDER = { absent:0, present:1, correct:2 };
+const keyStates = {};
+
+function setKeyState(letter, next) {
+  const prev = keyStates[letter];
+  if (!prev || KEY_ORDER[next] > KEY_ORDER[prev]) keyStates[letter] = next;
+}
+
+function applyKeyStyles() {
+  document.querySelectorAll('#keyboard-container .keyboard-button').forEach(btn => {
+    const k = btn.textContent;
+    btn.classList.remove('correct','present','absent');
+    const s = keyStates[k];
+    if (s) btn.classList.add(s);
+  });
+}
+
+// Two-pass scorer (handles duplicates)
+function scoreGuess(guessArr, answerArr) {
+  const res = Array(WORD_LENGTH).fill('absent');
+  const counts = {};
+
+  for (let i = 0; i < WORD_LENGTH; i++) {
+    if (guessArr[i] === answerArr[i]) {
+      res[i] = 'correct';
+    } else {
+      const ch = answerArr[i];
+      counts[ch] = (counts[ch] || 0) + 1;
+    }
+  }
+  for (let i = 0; i < WORD_LENGTH; i++) {
+    if (res[i] === 'correct') continue;
+    const g = guessArr[i];
+    if (counts[g] > 0) {
+      res[i] = 'present';
+      counts[g]--;
+    }
+  }
+  return res;
+}
+
 window.addEventListener('DOMContentLoaded', () => {
   const gameBoard = document.getElementById('game-board');
   const keyboard = document.getElementById('keyboard-container');
@@ -34,10 +76,8 @@ window.addEventListener('DOMContentLoaded', () => {
 
   function createKeyboard() {
     const keys = [
-      'b', 'h', 'k', 'kw', 'm', 'n', 'p', 'r', 's', 't',
-      'ts', 'w', 'y', 'ʔ', 'a', 'e', 'i', 'o', 'u',
-      'ʉ', 'a̠', 'e̠', 'i̠', 'o̠', 'u̠', 'ʉ̠',
-      '←', '⏎'
+      'b','h','k','kw','m','n','p','r','s','t','ts','w','y','ʔ',
+      'a','e','i','o','u','ʉ','a̠','e̠','i̠','o̠','u̠','ʉ̠','←','⏎'
     ];
     keys.forEach(key => {
       const button = document.createElement('button');
@@ -49,8 +89,7 @@ window.addEventListener('DOMContentLoaded', () => {
   }
 
   function handleKey(key) {
-      // Clear the message when the player starts typing again
-  messageContainer.textContent = "";
+    messageContainer.textContent = "";
     if (key === '←') {
       currentGuess.pop();
     } else if (key === '⏎') {
@@ -71,36 +110,38 @@ window.addEventListener('DOMContentLoaded', () => {
 
   function submitGuess() {
     if (currentGuess.length !== WORD_LENGTH) return;
+
     const guess = currentGuess.join('');
     if (!validWords.includes(guess)) {
       showMessage('Invalid word');
       return;
     }
 
-    let rowResult = '';
+    const guessArray = [...currentGuess].map(c => c.normalize('NFC'));
+    const answerArray = [...secretArray].map(c => c.normalize('NFC'));
+
+    const verdicts = scoreGuess(guessArray, answerArray);
+    const emojiRow = [];
 
     for (let i = 0; i < WORD_LENGTH; i++) {
       const tile = document.getElementById(`tile-${currentRow}-${i}`);
-      if (currentGuess[i] === secretArray[i]) {
-        tile.style.backgroundColor = '#66b3ff';
-        rowResult += '🟦';
-      } else if (secretArray.includes(currentGuess[i])) {
-        tile.style.backgroundColor = '#cce4ff';
-        rowResult += '🩵';
-      } else {
-        tile.style.backgroundColor = '#ccc';
-        rowResult += '⬜';
-      }
+      tile.classList.remove('correct','present','absent');
+      tile.classList.add(verdicts[i]);
+
+      setKeyState(guessArray[i], verdicts[i]); // keyboard best-known state
+
+      emojiRow.push(verdicts[i] === 'correct' ? '🟦' : verdicts[i] === 'present' ? '🩵' : '⬜');
     }
+    applyKeyStyles();
 
-    results.push(rowResult);
+    results.push(emojiRow.join(''));
 
-    if (guess === secretArray.join('')) {
+    if (guessArray.join('') === answerArray.join('')) {
       showMessage("Tsaaku ʉnʉ̠!\nYou got it!");
       shareButton.style.display = "inline-block";
       const guessCount = currentRow + 1;
       shareButton.onclick = () => {
-        const header = `Comanche Word Game 5 - ${guessCount}/${MAX_GUESSES}`;
+        const header = `Comanche Word Game ${WORD_LENGTH} - ${guessCount}/${MAX_GUESSES}`;
         const full = `${header}\n${results.join('\n')}`;
         navigator.clipboard.writeText(full);
         alert("Score copied to clipboard!");
@@ -122,4 +163,5 @@ window.addEventListener('DOMContentLoaded', () => {
 
   createBoard();
   createKeyboard();
+  applyKeyStyles();
 });
